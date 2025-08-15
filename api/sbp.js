@@ -47,7 +47,8 @@ export default async function handler(req, res) {
         amount: { value: amount, currency: 'RUB' },
         payment_method_data: { type: 'sbp' },
         confirmation: { type: 'redirect', return_url: 'https://enotsburg.ru' },
-        description: 'Предоплата за запись к енотам'
+        description: 'Предоплата за запись к енотам',
+        capture: true // <- обязательный параметр для SBP
       })
     });
 
