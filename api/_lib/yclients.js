@@ -17,13 +17,15 @@ export async function getRecordsByPhone(phone) {
   const url = `${BASE}/company/${companyId}/clients/visits/search?client_phone=${normalized}&future=1`;
 
 
-  const resp = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${partnerToken}, User ${userToken}`,
-      'Accept': 'application/vnd.yclients.v2+json',
-      'Content-Type': 'application/json',
-    }
-  });
+const resp = await fetch(url, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${partnerToken}, User ${userToken}`,
+    'Accept': 'application/vnd.yclients.v2+json',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({}) // тело POST
+});
 
   if (!resp.ok) {
     const t = await resp.text();
