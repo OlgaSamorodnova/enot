@@ -14,7 +14,7 @@ export async function getRecordsByPhone(phone) {
     throw new Error('Не указан YCLIENTS_COMPANY_ID, YCLIENTS_PARTNER_TOKEN или YCLIENTS_BEARER');
   }
 
-  const url = `${BASE}/companies/${companyId}/visits/search/?client_phone=${normalized}&future=1`;
+  const url = `${BASE}/company/${companyId}/visits/search/?client_phone=${normalized}&future=1`;
 
   const resp = await fetch(url, {
     headers: {
