@@ -1,16 +1,16 @@
-// Разрешаем CORS
-res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // ваш домен
-res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotence-Key');
-
-// Обрабатываем preflight-запрос (OPTIONS)
-if (req.method === 'OPTIONS') {
-  return res.status(200).end();
-}
-
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
+  // Разрешаем CORS
+  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // ваш домен
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotence-Key');
+
+  // Обрабатываем preflight-запрос (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -24,10 +24,10 @@ export default async function handler(req, res) {
   try {
     const paymentData = {
       amount: { value: amount.toFixed(2), currency: 'RUB' },
-      confirmation: { type: 'qr', locale: 'ru_RU' }, // QR-код
+      confirmation: { type: 'qr', locale: 'ru_RU' },
       capture: true,
       description: `Оплата енотов, ${email}`,
-      payment_method_data: { type: 'sbp' }, // только СБП
+      payment_method_data: { type: 'sbp' },
       receipt: {
         customer: { email },
         items: [
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             description: 'Запись к енотам',
             quantity: '1.00',
             amount: { value: amount.toFixed(2), currency: 'RUB' },
-            vat_code: 4 // НДС 0%
+            vat_code: 4
           }
         ]
       }
