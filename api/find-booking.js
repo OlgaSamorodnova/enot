@@ -1,0 +1,48 @@
+import { applyCors } from './_lib/cors';
+import { getRecordsByPhone } from './_lib/yclients';
+import { calcPricing } from './_lib/price';
+
+export default async function handler(req, res) {
+  if (applyCors(req, res)) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    const { phone } = req.body || {};
+    if (!phone) return res.status(400).json({ error: 'Телефон обязателен' });
+
+    const data = await getRecordsByPhone(phone);
+    // Примерный формат; адаптируй под реальный ответ YClients
+    const future = (data?.data || data || []).filter(r => {
+      const dt = new Date(r.datetime || r.date || r.start_at);
+      return !isNaN(dt) && dt.getTime() > Date.now();
+    }).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
+    if (!future.length) {
+      return res.status(404).json({ error: 'Ближайших записей не найдено' });
+    }
+
+    const rec = future[0];
+    const services = (rec.services || rec.service || []).map(s => ({
+      id: s.id || s.service_id,
+      title: s.title || s.name,
+      cost: s.cost || s.price || 0
+    }));
+
+    const { suggested, fullPrice, persons } = calcPricing(services);
+
+    const typeTitle = services.map(s => s.title).join(' + ');
+    const datetime = rec.datetime || rec.date_time || rec.date;
+
+    return res.json({
+      record_id: rec.id || rec.record_id,
+      type: typeTitle,
+      datetime,
+      persons,
+      price_suggested: suggested,
+      price_full: fullPrice
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Ошибка поиска брони', details: e.message });
+  }
+}
