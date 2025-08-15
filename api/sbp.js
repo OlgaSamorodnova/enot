@@ -3,7 +3,7 @@ console.log('Key length:', process.env.YOOKASSA_SECRET_KEY?.length);
 
 export default async function handler(req, res) {
   // Разрешаем CORS
-  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru/'); // можно поставить твой домен вместо *
+  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // можно поставить твой домен вместо *
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
