@@ -2,6 +2,16 @@ console.log('Shop ID:', process.env.YOOKASSA_SHOP_ID);
 console.log('Key length:', process.env.YOOKASSA_SECRET_KEY?.length);
 
 export default async function handler(req, res) {
+  // Разрешаем CORS
+  res.setHeader('Access-Control-Allow-Origin', '*'); // можно поставить твой домен вместо *
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Обрабатываем preflight-запрос (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -20,11 +30,12 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-'Authorization': 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64')      },
+        'Authorization': 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64')
+      },
       body: JSON.stringify({
         amount: { value: amount, currency: 'RUB' },
         payment_method_data: { type: 'sbp' },
-        confirmation: { type: 'redirect', return_url: 'https://твойдомен.ru' },
+        confirmation: { type: 'redirect', return_url: 'https://enotsburg.ru' },
         description: 'Предоплата за запись к енотам'
       })
     });
