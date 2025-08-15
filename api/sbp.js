@@ -1,14 +1,21 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-  // --- CORS ---
-  res.setHeader('Access-Control-Allow-Origin', '*'); // можно заменить на 'https://enotsburg.ru'
+  // --- CORS для preflight ---
+  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // твой домен
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotence-Key');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  // --- Обрабатываем preflight ---
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-  // --- Парсим тело ---
+  // --- Только POST ---
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   let body;
   try {
     body = JSON.parse(req.body || '{}');
@@ -17,10 +24,7 @@ export default async function handler(req, res) {
   }
 
   const { amount, email } = body;
-
-  if (!amount || amount <= 0 || !email) {
-    return res.status(400).json({ error: 'Введите email и сумму' });
-  }
+  if (!amount || !email) return res.status(400).json({ error: 'Введите сумму и email' });
 
   try {
     const paymentData = {
@@ -36,7 +40,7 @@ export default async function handler(req, res) {
             description: 'Запись к енотам',
             quantity: '1.00',
             amount: { value: parseFloat(amount).toFixed(2), currency: 'RUB' },
-            vat_code: 4 // НДС 0%
+            vat_code: 4
           }
         ]
       }
