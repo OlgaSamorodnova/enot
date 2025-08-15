@@ -3,9 +3,8 @@ const BASE = 'https://api.yclients.com/api/v1';
 /**
  * Получаем будущие записи по телефону
  * @param {string} phone - номер телефона
- * @param {number} daysAhead - сколько дней вперед искать записи
  */
-export async function getRecordsByPhone(phone, daysAhead = 60) {
+export async function getRecordsByPhone(phone) {
   const normalized = String(phone).replace(/\D/g, '');
   const companyId = process.env.YCLIENTS_COMPANY_ID;
   const partnerToken = process.env.YCLIENTS_PARTNER_TOKEN;
@@ -15,17 +14,10 @@ export async function getRecordsByPhone(phone, daysAhead = 60) {
     throw new Error('Не указан YCLIENTS_COMPANY_ID, YCLIENTS_PARTNER_TOKEN или YCLIENTS_BEARER');
   }
 
-  const today = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
-  const toDate = new Date();
-  toDate.setDate(toDate.getDate() + daysAhead);
-  const to = toDate.toISOString().split('T')[0];
+  // С сегодняшней даты
+  const fromDate = new Date().toISOString().split('T')[0];
 
-  const url = `${BASE}/company/${companyId}/clients/visits/search`;
-  const body = {
-    client_phone: normalized,
-    from: today,
-    to: to
-  };
+  const url = `${BASE}/company/${companyId}/clients/visits/search?client_phone=${normalized}&from=${fromDate}`;
 
   const resp = await fetch(url, {
     method: 'POST',
@@ -34,7 +26,7 @@ export async function getRecordsByPhone(phone, daysAhead = 60) {
       'Accept': 'application/vnd.yclients.v2+json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify({}) // тело POST обязательно, даже пустое
   });
 
   if (!resp.ok) {
@@ -42,8 +34,7 @@ export async function getRecordsByPhone(phone, daysAhead = 60) {
     throw new Error(`YClients error ${resp.status}: ${t}`);
   }
 
-  const data = await resp.json();
-  return data;
+  return resp.json();
 }
 
 /**
