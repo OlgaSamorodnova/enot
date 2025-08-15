@@ -7,17 +7,18 @@ const BASE = 'https://api.yclients.com/api/v1';
 export async function getRecordsByPhone(phone) {
   const normalized = String(phone).replace(/\D/g, '');
   const companyId = process.env.YCLIENTS_COMPANY_ID;
-  const token = process.env.YCLIENTS_BEARER;
+  const partnerToken = process.env.YCLIENTS_PARTNER_TOKEN;
+  const userToken = process.env.YCLIENTS_BEARER;
 
-  if (!companyId || !token) {
-    throw new Error('Не указан YCLIENTS_COMPANY_ID или YCLIENTS_BEARER');
+  if (!companyId || !partnerToken || !userToken) {
+    throw new Error('Не указан YCLIENTS_COMPANY_ID, YCLIENTS_PARTNER_TOKEN или YCLIENTS_BEARER');
   }
 
   const url = `${BASE}/companies/${companyId}/visits/search/?client_phone=${normalized}&future=1`;
 
   const resp = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${partnerToken}, User ${userToken}`,
       'Accept': 'application/vnd.yclients.v2+json',
       'Content-Type': 'application/json',
     }
@@ -33,15 +34,16 @@ export async function getRecordsByPhone(phone) {
 
 /**
  * Отмечаем запись как оплачено
- * @param {string|number} recordId 
- * @param {string} comment 
+ * @param {string|number} recordId
+ * @param {string} comment
  */
 export async function markRecordPaid(recordId, comment = 'Оплачено онлайн') {
   const companyId = process.env.YCLIENTS_COMPANY_ID;
-  const token = process.env.YCLIENTS_BEARER;
+  const partnerToken = process.env.YCLIENTS_PARTNER_TOKEN;
+  const userToken = process.env.YCLIENTS_BEARER;
 
-  if (!companyId || !token) {
-    throw new Error('Не указан YCLIENTS_COMPANY_ID или YCLIENTS_BEARER');
+  if (!companyId || !partnerToken || !userToken) {
+    throw new Error('Не указан YCLIENTS_COMPANY_ID, YCLIENTS_PARTNER_TOKEN или YCLIENTS_BEARER');
   }
 
   const url = `${BASE}/companies/${companyId}/visits/${recordId}`;
@@ -50,7 +52,7 @@ export async function markRecordPaid(recordId, comment = 'Оплачено он�
   const resp = await fetch(url, {
     method: 'PATCH',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${partnerToken}, User ${userToken}`,
       'Accept': 'application/vnd.yclients.v2+json',
       'Content-Type': 'application/json',
     },
