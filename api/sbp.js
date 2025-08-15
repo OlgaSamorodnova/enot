@@ -2,41 +2,40 @@ import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   // --- CORS ---
-  // Для Tilda иногда удобнее поставить '*', чтобы не ломалось с www или разными Origin
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', '*'); // можно заменить на 'https://enotsburg.ru'
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotence-Key');
 
-  // Обработка preflight-запроса
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // --- Парсим тело ---
+  let body;
+  try {
+    body = JSON.parse(req.body || '{}');
+  } catch {
+    return res.status(400).json({ error: 'Некорректный JSON' });
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  const { amount, email } = body;
+
+  if (!amount || amount <= 0 || !email) {
+    return res.status(400).json({ error: 'Введите email и сумму' });
   }
 
   try {
-    const { amount, email } = req.body;
-
-    if (!amount || amount <= 0 || !email) {
-      return res.status(400).json({ error: 'Некорректные данные' });
-    }
-
-    // --- Формируем платеж для Юкассы ---
     const paymentData = {
-      amount: { value: amount.toFixed(2), currency: 'RUB' },
-      confirmation: { type: 'qr', locale: 'ru_RU' }, // QR-код для СБП
+      amount: { value: parseFloat(amount).toFixed(2), currency: 'RUB' },
+      confirmation: { type: 'qr', locale: 'ru_RU' },
       capture: true,
       description: `Оплата енотов, ${email}`,
-      payment_method_data: { type: 'sbp' }, // только СБП
+      payment_method_data: { type: 'sbp' },
       receipt: {
         customer: { email },
         items: [
           {
             description: 'Запись к енотам',
             quantity: '1.00',
-            amount: { value: amount.toFixed(2), currency: 'RUB' },
+            amount: { value: parseFloat(amount).toFixed(2), currency: 'RUB' },
             vat_code: 4 // НДС 0%
           }
         ]
