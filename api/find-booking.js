@@ -16,33 +16,34 @@ export default async function handler(req, res) {
     }
 
     const data = await getRecordsByPhone(phone);
-
-    // Берём записи
     const visits = data?.data?.records || [];
 
-    // Фильтруем будущие записи
     const future = visits
       .filter(r => {
-        const dt = new Date(r.datetime || r.date || r.start_at);
+        const dt = new Date(r.date || r.datetime || r.start_at);
         return !isNaN(dt) && dt.getTime() > Date.now();
       })
-      .sort((a, b) => new Date(a.datetime || a.date || a.start_at) - new Date(b.datetime || b.date || b.start_at));
+      .sort((a, b) => new Date(a.date || a.datetime || a.start_at) - new Date(b.date || b.datetime || b.start_at));
 
     if (!future.length) {
       return res.status(404).json({ error: 'Ближайших записей не найдено' });
     }
 
     const rec = future[0];
+
     const services = (rec.services || []).map(s => ({
       id: s.id || s.service_id,
       title: s.title || s.name,
-      cost: s.cost_to_pay || s.cost || s.price || 0
+      cost: s.cost_to_pay || s.cost || 0,
+      amount: s.amount || 1
     }));
 
     const { suggested, fullPrice, persons } = calcPricing(services);
 
     const typeTitle = services.map(s => s.title).join(' + ');
-    const datetime = rec.datetime || rec.date || rec.start_at;
+    const datetime = rec.date || rec.datetime || rec.start_at;
+
+    const showFullPayment = fullPrice !== suggested;
 
     return res.json({
       record_id: rec.id || rec.record_id,
@@ -50,7 +51,8 @@ export default async function handler(req, res) {
       datetime,
       persons,
       price_suggested: suggested,
-      price_full: fullPrice
+      price_full: fullPrice,
+      show_full_payment_checkbox: showFullPayment
     });
   } catch (e) {
     console.error(e);
