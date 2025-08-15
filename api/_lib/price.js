@@ -1,43 +1,42 @@
 import { getServicePrice } from './yclients';
 
 /**
- * Рассчитываем стоимость и количество участников
- * @param {Array} services - [{id, title, cost, amount, datetime}]
+ * Рассчёт частичной и полной стоимости и участников
+ * @param {Array} services - [{id, title, cost, amount}]
+ * @returns {Promise<{suggested, fullPrice, persons}>}
  */
 export async function calcPricing(services) {
   if (!Array.isArray(services)) services = [];
 
-  let fullPrice = 0;
-  let suggested = 0;
+  const fullPrice = services.reduce((sum, s) => sum + Number(s.cost || 0), 0);
+
   let persons = 0;
+  let suggested = 0;
 
-  for (const s of services) {
-    const title = s.title || '';
-    const amount = Number(s.amount || 1);
-    let cost = Number(s.cost || 0);
+  // Проверяем наличие еноторелаксаций
+  const relaxServices = services.filter(s => /енотораслакс/i.test(s.title) || /релакс/i.test(s.title));
+  const normalServices = services.filter(s => !relaxServices.includes(s));
 
-    // Эноторелаксация требует отдельного запроса
-    if (/еноторелаксация/i.test(title)) {
-      try {
-        const priceData = await getServicePrice(s.id, s.datetime);
-        cost = Number(priceData?.data?.first_cost || cost);
-      } catch (e) {
-        console.error('Ошибка получения цены релаксации', e);
-      }
+  if (normalServices.length > 0) {
+    // Количество участников — максимум количества одинаковых услуг
+    persons = Math.max(...normalServices.map(s => s.amount || 1));
 
-      // Определяем участников
-      persons = 3; // базово "до 3 человек"
-      const addonCount = services.filter(x => /\+1/.test(x.title)).reduce((sum, x) => sum + Number(x.amount || 0), 0);
-      if (addonCount > 0) persons += addonCount;
+    // Частичная оплата — стоимость одной услуги
+    const minCostService = normalServices.reduce((min, s) => {
+      const c = Number(s.cost || 0);
+      return min === null ? c : Math.min(min, c);
+    }, null);
+    suggested = minCostService || 0;
+  }
 
-      // Частичная оплата — только стоимость самой услуги
+  if (relaxServices.length > 0) {
+    persons = 0;
+    // Берём цену через API для каждой услуги
+    suggested = 0;
+    for (const s of relaxServices) {
+      const cost = await getServicePrice(s.id);
       suggested += cost;
-      fullPrice += cost * amount; // полная сумма = cost * количество услуг
-    } else {
-      // Обычная услуга
-      persons = Math.max(persons, amount);
-      suggested += cost; // частичная оплата = цена одной услуги
-      fullPrice += cost * amount;
+      persons = 3; // по умолчанию "до 3 чел"
     }
   }
 
