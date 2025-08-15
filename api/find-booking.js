@@ -11,9 +11,10 @@ export default async function handler(req, res) {
     if (!phone) return res.status(400).json({ error: 'Телефон обязателен' });
 
     const data = await getRecordsByPhone(phone);
-    // Примерный формат; адаптируй под реальный ответ YClients
-    const future = (data?.data || data || []).filter(r => {
-      const dt = new Date(r.datetime || r.date || r.start_at);
+
+    const visits = data?.data || [];
+    const future = visits.filter(r => {
+      const dt = new Date(r.datetime || r.start_at);
       return !isNaN(dt) && dt.getTime() > Date.now();
     }).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
 
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     const rec = future[0];
-    const services = (rec.services || rec.service || []).map(s => ({
+    const services = (rec.services || []).map(s => ({
       id: s.id || s.service_id,
       title: s.title || s.name,
       cost: s.cost || s.price || 0
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
     const { suggested, fullPrice, persons } = calcPricing(services);
 
     const typeTitle = services.map(s => s.title).join(' + ');
-    const datetime = rec.datetime || rec.date_time || rec.date;
+    const datetime = rec.datetime || rec.start_at;
 
     return res.json({
       record_id: rec.id || rec.record_id,
