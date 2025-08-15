@@ -1,12 +1,13 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-  // Разрешаем CORS
-  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // твой домен
+  // --- CORS ---
+  // Для Tilda иногда удобнее поставить '*', чтобы не ломалось с www или разными Origin
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotence-Key');
 
-  // Обработка preflight OPTIONS
+  // Обработка preflight-запроса
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -22,12 +23,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Некорректные данные' });
     }
 
+    // --- Формируем платеж для Юкассы ---
     const paymentData = {
       amount: { value: amount.toFixed(2), currency: 'RUB' },
-      confirmation: { type: 'qr', locale: 'ru_RU' },
+      confirmation: { type: 'qr', locale: 'ru_RU' }, // QR-код для СБП
       capture: true,
       description: `Оплата енотов, ${email}`,
-      payment_method_data: { type: 'sbp' },
+      payment_method_data: { type: 'sbp' }, // только СБП
       receipt: {
         customer: { email },
         items: [
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
             description: 'Запись к енотам',
             quantity: '1.00',
             amount: { value: amount.toFixed(2), currency: 'RUB' },
-            vat_code: 4
+            vat_code: 4 // НДС 0%
           }
         ]
       }
