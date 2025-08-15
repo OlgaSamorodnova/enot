@@ -1,7 +1,7 @@
 const BASE = 'https://api.yclients.com/api/v1';
 
 /**
- * Получаем будущие записи по телефону
+ * Получаем все будущие записи по телефону с учетом пагинации
  * @param {string} phone - номер телефона
  */
 export async function getRecordsByPhone(phone) {
@@ -14,25 +14,43 @@ export async function getRecordsByPhone(phone) {
     throw new Error('Не указан YCLIENTS_COMPANY_ID, YCLIENTS_PARTNER_TOKEN или YCLIENTS_BEARER');
   }
 
-  const url = `${BASE}/company/${companyId}/clients/visits/search?client_phone=${normalized}&future=1`;
+  let allRecords = [];
+  let from = null;
+  let to = null;
 
+  do {
+    const url = new URL(`${BASE}/company/${companyId}/clients/visits/search`);
+    url.searchParams.set('client_phone', normalized);
+    url.searchParams.set('future', '1');
+    if (from) url.searchParams.set('from', from);
+    if (to) url.searchParams.set('to', to);
 
-const resp = await fetch(url, {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${partnerToken}, User ${userToken}`,
-    'Accept': 'application/vnd.yclients.v2+json',
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({}) // тело POST
-});
+    const resp = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${partnerToken}, User ${userToken}`,
+        'Accept': 'application/vnd.yclients.v2+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({})
+    });
 
-  if (!resp.ok) {
-    const t = await resp.text();
-    throw new Error(`YClients error ${resp.status}: ${t}`);
-  }
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(`YClients error ${resp.status}: ${t}`);
+    }
 
-  return resp.json();
+    const result = await resp.json();
+    const records = result?.data?.records || [];
+    allRecords.push(...records);
+
+    // Обновляем курсор для следующей страницы
+    const cursor = result?.meta?.dateCursor?.next;
+    from = cursor?.from || null;
+    to = cursor?.to || null;
+  } while (from && to);
+
+  return { data: { records: allRecords } };
 }
 
 /**
