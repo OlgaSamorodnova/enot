@@ -1,13 +1,19 @@
 const BASE = 'https://api.yclients.com/api/v1';
 
+/**
+ * Получаем будущие записи по телефону
+ * @param {string} phone - номер телефона
+ */
 export async function getRecordsByPhone(phone) {
-  // Нормализуем телефон, убираем всё кроме цифр (например 79xxxxxxxxx)
   const normalized = String(phone).replace(/\D/g, '');
   const companyId = process.env.YCLIENTS_COMPANY_ID;
   const token = process.env.YCLIENTS_BEARER;
 
-  // Пример запроса: уточни при интеграции, формат фильтра может отличаться у YClients-аккаунтов
-  const url = `${BASE}/records/${companyId}?phone=${normalized}&future=1`;
+  if (!companyId || !token) {
+    throw new Error('Не указан YCLIENTS_COMPANY_ID или YCLIENTS_BEARER');
+  }
+
+  const url = `${BASE}/companies/${companyId}/visits?phone=${normalized}&future=1`;
 
   const resp = await fetch(url, {
     headers: {
@@ -16,24 +22,30 @@ export async function getRecordsByPhone(phone) {
       'Content-Type': 'application/json',
     }
   });
+
   if (!resp.ok) {
     const t = await resp.text();
     throw new Error(`YClients error ${resp.status}: ${t}`);
   }
+
   return resp.json();
 }
 
-export async function markRecordPaid(recordId, comment = 'Оплачено онлайн (ЮKassa)') {
+/**
+ * Отмечаем запись как оплачено
+ * @param {string|number} recordId 
+ * @param {string} comment 
+ */
+export async function markRecordPaid(recordId, comment = 'Оплачено онлайн') {
   const companyId = process.env.YCLIENTS_COMPANY_ID;
   const token = process.env.YCLIENTS_BEARER;
 
-  // Самый безопасный способ — дописать комментарий и/или кастомное поле (если есть).
-  const url = `${BASE}/records/${companyId}/${recordId}`;
-  const body = {
-    // Если у вас есть кастомное поле "paid" — укажи здесь:
-    // "custom_fields": { "paid": true },
-    "comment": comment
-  };
+  if (!companyId || !token) {
+    throw new Error('Не указан YCLIENTS_COMPANY_ID или YCLIENTS_BEARER');
+  }
+
+  const url = `${BASE}/companies/${companyId}/visits/${recordId}`;
+  const body = { comment };
 
   const resp = await fetch(url, {
     method: 'PATCH',
@@ -49,5 +61,6 @@ export async function markRecordPaid(recordId, comment = 'Оплачено он�
     const t = await resp.text();
     throw new Error(`YClients PATCH error ${resp.status}: ${t}`);
   }
+
   return resp.json();
 }
