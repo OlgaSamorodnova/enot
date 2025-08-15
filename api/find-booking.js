@@ -37,6 +37,7 @@ export default async function handler(req, res) {
     }));
 
     const { suggested, fullPrice, persons } = calcPricing(services);
+
     const typeTitle = services.map(s => s.title).join(' + ');
     const datetime = rec.datetime || rec.start_at;
 
