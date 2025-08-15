@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         const dt = new Date(r.datetime || r.start_at);
         return !isNaN(dt) && dt.getTime() > Date.now();
       })
-      .sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+      .sort((a, b) => new Date(a.datetime || a.start_at) - new Date(b.datetime || b.start_at));
 
     if (!future.length) {
       return res.status(404).json({ error: 'Ближайших записей не найдено' });
@@ -37,7 +37,6 @@ export default async function handler(req, res) {
     }));
 
     const { suggested, fullPrice, persons } = calcPricing(services);
-
     const typeTitle = services.map(s => s.title).join(' + ');
     const datetime = rec.datetime || rec.start_at;
 
