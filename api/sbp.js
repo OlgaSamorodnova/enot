@@ -59,7 +59,7 @@ export default async function handler(req, res) {
               description: 'Запись к енотам',
               quantity: 1,
               amount: { value: amount, currency: 'RUB' },
-              vat_code: 0 // НДС 0%
+              vat_code: 4 // НДС 0%
             }
           ]
         }
