@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     }
 
     const data = await getRecordsByPhone(phone);
-    const visits = data?.data || [];
+    const visits = data?.data?.records || [];
 
     const future = visits
       .filter(r => {
