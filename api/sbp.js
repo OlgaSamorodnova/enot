@@ -1,36 +1,47 @@
-console.log('Shop ID:', process.env.YOOKASSA_SHOP_ID);
-console.log('Key length:', process.env.YOOKASSA_SECRET_KEY?.length);
-
 export default async function handler(req, res) {
-  // Разрешаем CORS
-  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // можно поставить твой домен вместо *
+  // -------------------------
+  // CORS
+  // -------------------------
+  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // без слеша!
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Обрабатываем preflight-запрос (OPTIONS)
+  // Обрабатываем preflight (OPTIONS)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
+  // -------------------------
+  // Проверка метода
+  // -------------------------
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // -------------------------
+  // Получаем сумму
+  // -------------------------
   const { amount } = req.body;
-
   if (!amount || Number(amount) <= 0) {
     return res.status(400).json({ error: 'Invalid amount' });
   }
 
+  // -------------------------
+  // Настройки ЮKassa
+  // -------------------------
   const shopId = process.env.YOOKASSA_SHOP_ID;
   const secretKey = process.env.YOOKASSA_SECRET_KEY;
+
+  // Генерируем уникальный Idempotence-Key
+  const idempotenceKey = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 
   try {
     const response = await fetch('https://api.yookassa.ru/v3/payments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64')
+        'Authorization': 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64'),
+        'Idempotence-Key': idempotenceKey
       },
       body: JSON.stringify({
         amount: { value: amount, currency: 'RUB' },
