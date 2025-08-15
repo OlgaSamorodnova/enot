@@ -1,22 +1,52 @@
+// /api/sendTicket.js
 import nodemailer from 'nodemailer';
 
-export function getTransport() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
-}
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-export async function sendTickets(toEmail, subject, html, attachments) {
-  const transporter = getTransport();
-  const from = process.env.EMAIL_FROM || 'no-reply@example.com';
-  await transporter.sendMail({
-    from, to: toEmail, subject, html,
-    attachments // [{filename, content (Buffer), contentType}]
-  });
+  const { email, ticketCode, ticketType, dateTime, price } = req.body;
+
+  if (!email || !ticketCode || !ticketType || !dateTime || !price) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    // Настройки SMTP Яндекс
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.yandex.ru',
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.YANDEX_EMAIL,
+        pass: process.env.YANDEX_PASSWORD, // пароль приложения
+      },
+    });
+
+    // Формируем письмо
+    const mailOptions = {
+      from: `"Енотсбург" <${process.env.YANDEX_EMAIL}>`,
+      to: email,
+      subject: `Ваш билет на экскурсию "${ticketType}"`,
+      html: `
+        <h2>Спасибо за покупку!</h2>
+        <p>Ваш билет:</p>
+        <ul>
+          <li><strong>Код:</strong> ${ticketCode}</li>
+          <li><strong>Тип экскурсии:</strong> ${ticketType}</li>
+          <li><strong>Дата и время:</strong> ${dateTime}</li>
+          <li><strong>Цена:</strong> ${price} ₽</li>
+        </ul>
+        <p>Покажите этот билет на входе.</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({ message: 'Ticket sent successfully' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to send ticket', details: err.message });
+  }
 }
