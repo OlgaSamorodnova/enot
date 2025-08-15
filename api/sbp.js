@@ -17,8 +17,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64')
-      },
+'Authorization': 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64')      },
       body: JSON.stringify({
         amount: { value: amount, currency: 'RUB' },
         payment_method_data: { type: 'sbp' },
