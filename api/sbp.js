@@ -2,11 +2,11 @@ import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   // Разрешаем CORS
-  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // ваш домен
+  res.setHeader('Access-Control-Allow-Origin', 'https://enotsburg.ru'); // твой домен
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotence-Key');
 
-  // Обрабатываем preflight-запрос (OPTIONS)
+  // Обработка preflight OPTIONS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -15,13 +15,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { amount, email } = req.body;
-
-  if (!amount || amount <= 0 || !email) {
-    return res.status(400).json({ error: 'Некорректные данные' });
-  }
-
   try {
+    const { amount, email } = req.body;
+
+    if (!amount || amount <= 0 || !email) {
+      return res.status(400).json({ error: 'Некорректные данные' });
+    }
+
     const paymentData = {
       amount: { value: amount.toFixed(2), currency: 'RUB' },
       confirmation: { type: 'qr', locale: 'ru_RU' },
@@ -61,6 +61,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Серверная ошибка', details: err.message });
+    return res.status(500).json({ error: 'Серверная ошибка', details: err.message });
   }
 }
