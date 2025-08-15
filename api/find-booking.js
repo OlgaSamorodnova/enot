@@ -1,49 +1,31 @@
-import { applyCors } from './_lib/cors';
-import { getRecordsByPhone } from './_lib/yclients';
-import { calcPricing } from './_lib/price';
+export async function getRecordsByPhone(phone) {
+  const normalized = String(phone).replace(/\D/g, '');
+  const companyId = process.env.YCLIENTS_COMPANY_ID;
+  const token = process.env.YCLIENTS_BEARER;
 
-export default async function handler(req, res) {
-  if (applyCors(req, res)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  try {
-    const { phone } = req.body || {};
-    if (!phone) return res.status(400).json({ error: 'Телефон обязателен' });
-
-    const data = await getRecordsByPhone(phone);
-
-    const visits = data?.data || [];
-    const future = visits.filter(r => {
-      const dt = new Date(r.datetime || r.start_at);
-      return !isNaN(dt) && dt.getTime() > Date.now();
-    }).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
-
-    if (!future.length) {
-      return res.status(404).json({ error: 'Ближайших записей не найдено' });
-    }
-
-    const rec = future[0];
-    const services = (rec.services || []).map(s => ({
-      id: s.id || s.service_id,
-      title: s.title || s.name,
-      cost: s.cost || s.price || 0
-    }));
-
-    const { suggested, fullPrice, persons } = calcPricing(services);
-
-    const typeTitle = services.map(s => s.title).join(' + ');
-    const datetime = rec.datetime || rec.start_at;
-
-    return res.json({
-      record_id: rec.id || rec.record_id,
-      type: typeTitle,
-      datetime,
-      persons,
-      price_suggested: suggested,
-      price_full: fullPrice
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Ошибка поиска брони', details: e.message });
+  if (!companyId || !token) {
+    throw new Error('Не указан YCLIENTS_COMPANY_ID или YCLIENTS_BEARER');
   }
+
+  const url = `https://api.yclients.com/api/v1/companies/${companyId}/visits/search`;
+
+  const resp = await fetch(url, {
+    method: 'POST', // <--- обязательно POST
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.yclients.v2+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_phone: normalized,
+      future: 1
+    })
+  });
+
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error(`YClients error ${resp.status}: ${t}`);
+  }
+
+  return resp.json();
 }
